@@ -65,17 +65,20 @@ Here is a brief overview of the script contents:
 If things seem wonky, it's because I'm a noob to both C# and Unity. Here is a record of some 
 notes I thought to include when it comes to making changes within the Unity game file. 
 
-#### **Sprite Organization** 
+#### **Asset Organization** 
+* I uploaded the "standard assets" package because it simplified some of the elements that I wanted to use. 
+However, there are a lot of things in this package that I did NOT use. This *should* be cleaned out, but I have done this yet.
+
+* In the export package, there are many assets that are no longer being used. These are from previous
+drafts of the project. These also need to be carefully cleaned out. When in doubt, see the "Game Scripts"
+and "Game Objects" file for the most up-to-date assets in use. 
+
 * Whenever I add script to scenes or objects, I add it to a folder in the hierarchy called "Functions"
 (found in the "Investigater" panel -- default left side)
 
 * I tried to keep the hierarchies (default left panel) as similar as possible across the scenes. 
 Changing them (e.g., unnesting or adding new parents) can have pretty big effects on how 
 game objects interact and if they are accessible, so please be careful here.
-
-* I uploaded the "standard assets" package (free and available from Unity Store) because
-it simplified some of the elements that I wanted to use. However, there are a lot of things
-in this package that I did NOT use. This *should* be cleaned out, but I have done this yet.
 
 
 #### **If objects look strange...**
