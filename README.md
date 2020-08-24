@@ -38,7 +38,8 @@ As of 08.24.20, the game hosted at this link is meant for pilot participants onl
 In this folder, there is a single Unity package file of the most recent game version in development. 
 When opened in Unity, it will automatically import all the necessary assets (models, animations, 
 scripts, dependencies) to recreate the game. Please note that you won't be able to recreate the game 
-in Unity from the objects/scripts files below, and you must use this exported package.
+in Unity from the objects/scripts files below, and you must use this exported package. I have intentionally
+left out all unity metadata and many of the scripts/objects included "standard assets". 
 
 This game was designed in Unity Version 2018.4.23f1 (free). Please install and run the game on this version.
 
