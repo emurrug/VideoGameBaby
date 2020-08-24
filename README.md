@@ -17,16 +17,16 @@ how parents are dividing their attention. The main DVs in this experiment
 are car-detection RT and estimated mph. The IV is parenthood vs. no-children adults.
 
 
-The PI on this project is Emma Murrugarra (eam422@cornell.edu) working under the supervision
+The P.I. on this project is Emma Murrugarra (eam422@cornell.edu) working under the supervision
 of Michael Goldstein (mhg26@cornell.edu) in the B.A.B.Y. Lab at Cornell University. 
 
 
 ****************
-***Navigation***
+***File Navigation***
 ****************
 Here is some important information about the relevant files for this project.
 
-**Publicly Available Builds**
+#### **Publicly Available Builds**
 This game is being hosted on itch.io (free game-sharing platform). There is a MAC and Windows
 build ready to install at the following link: 
 https://murrugarra.itch.io/baby-lab-videogame/download/x_GqoXSRxsiDHiV5mi9gl9awgWQ7p_HqpdI8Uavi
@@ -34,18 +34,18 @@ https://murrugarra.itch.io/baby-lab-videogame/download/x_GqoXSRxsiDHiV5mi9gl9awg
 This link can be used to see what the game looks like in practice or to run test subjects. 
 As of 08.24.20, the game hosted at this link is meant for pilot participants only.
 
-**Complete Packaged Game File (must be opened in Unity)**
+#### **Complete Packaged Game File (must be opened in Unity)**
 In this folder, there is a single Unity package file of the most recent game version in development. 
 When opened in Unity, it will automatically import all the necessary assets and models too recreate the game. 
 
 This game was designed in Unity Version 2018.4.23f1. Please install and run the game on this version.
 
-**Game Objects (includes model and animation files)**
+#### **Game Objects (includes model and animation files)**
 For reference on some of the assets that I used or models that were created (e.g., the virtual baby).
 All assets are free and publicly available, or were otherwise crafted by Emma. All crafted
 models/animations were done in Blender (recommended). 
 
-**Game Scripts**
+#### **Game Scripts**
 Other than what I have done in Unity, I don't really know any C#. So I do my best to notate my methods
 within the script files themselves. If you are already familiar with C#....please forgive me...
 
@@ -63,7 +63,7 @@ Here is a brief overview of the script contents:
 If things seem wonky, it's because I'm a noob to both C# and Unity. Here is a record of some 
 notes I thought to include when it comes to making changes within the Unity game file. 
 
-**Sprite Organization** 
+#### **Sprite Organization** 
 * Whenever I add script to scenes or objects, I add it to a folder in the hierarchy called "Functions"
 (found in the "Investigater" panel -- default left side)
 
@@ -76,12 +76,12 @@ it simplified some of the elements that I wanted to use. However, there are a lo
 in this package that I did NOT use. This *should* be cleaned out, but I have done this yet.
 
 
-**If objects look strange...:**
+#### **If objects look strange...**
 * How to change the baby's crawl speed: you will find this in the Nav Mesh Inspector
 
 * Remember to make most objects (e.g., the player, the baby, the car) kinematic and affected by gravity
 
-**Misc. considerations for the future**
+#### **Misc. considerations for the future**
 * The baby object is equipped with a fairly detailed skeleton, and can move
 in more complex ways than is currently being used. This may be useful for future projects.
 
