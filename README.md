@@ -37,8 +37,10 @@ As of 08.24.20, the game hosted at this link is meant for pilot participants onl
 #### **Complete Packaged Game File (must be opened in Unity)**
 In this folder, there is a single Unity package file of the most recent game version in development. 
 When opened in Unity, it will automatically import all the necessary assets and models too recreate the game. 
+Please note that you won't be able to recreate the game in Unity from the objects/scripts files below,
+and you must use this exported package.
 
-This game was designed in Unity Version 2018.4.23f1. Please install and run the game on this version.
+This game was designed in Unity Version 2018.4.23f1 (free). Please install and run the game on this version.
 
 #### **Game Objects (includes model and animation files)**
 For reference on some of the assets that I used or models that were created (e.g., the virtual baby).
