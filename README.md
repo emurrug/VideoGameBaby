@@ -56,8 +56,9 @@ Here is a brief overview of the script contents:
 * Gameplay trigger mechanics 
 * Dialogue Scripts (what participants read)
 * Data Logging (through an AWS-hosted server) 
-* Skeleton scripts (*in progress...*)
-  * these are condensed non-compiling scripts designed to make it easier for future RAs to find/use code if desired. 
+
+I have written a "Scripts at a Glance" markdown file. ***This may be a helpful starting place for those
+who want to recycle the code for their own use.***
 
 
 *************************************

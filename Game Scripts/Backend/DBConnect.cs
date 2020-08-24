@@ -20,6 +20,8 @@
 //directly to the 'Assets' library. This can be downloaded online, but it MUST be vers. 6.9.8.0 
 //to be compatible with the .NET connector
 
+//08.24.20 The server information has been anonymized to publish example to GitHub
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -52,10 +54,10 @@ public class DBConnect : MonoBehaviour
     //initialize values
     public DBConnect()
     {
-        server = "virtualbaby-simulator.cpoxqggcx2nm.us-east-2.rds.amazonaws.com";
-        database = "unityaccess";
+        server = "example-serveraddress-url.amazonaws.com";
+        database = "databasename";
         uid = "admin";
-        password = "virtualbaby";
+        password = "password";
 
         string connectionString;
         connectionString = "SERVER=" + server + ";" + "DATABASE=" +

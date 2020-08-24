@@ -13,9 +13,9 @@ public static class CombinedData
     private static string id = "NA";//subject ID
     private static string subcondition = "NA"; //subject condition (currently no script exists for alternate conditions)
     private static string blockname = "NA"; //references AdvanceScenes script to get block info 
-    private static string trial = "NA";
-    private static string carspeed = "NA";
-    private static string babylocation = "NA";
+    private static string trial = "NA"; // number of cars passed (and waved down)
+    private static string carspeed = "NA"; // how fast the car is going
+    private static string babylocation = "NA"; // whether the baby is on the grass, blanket, or road
     private static string responsename = "NA"; //references player actions
     private static string eventname = "NA"; //references game actions
 
