@@ -65,7 +65,8 @@ who want to recycle the code for their own use.***
 ***Bits and Boops (E.M.'s dev habits)***
 *************************************
 If things seem wonky, it's because I'm a noob to both C# and Unity. Here is a record of some 
-notes I thought to include when it comes to making changes within the Unity game file. 
+notes I thought to include when it comes to making changes within the Unity game file.
+I admittedly got lazy with this section so plan on updates to come.
 
 #### **Asset Organization** 
 * I uploaded the "standard assets" package because it simplified some of the elements that I wanted to use. 
