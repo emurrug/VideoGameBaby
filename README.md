@@ -67,6 +67,19 @@ who want to recycle the code for their own use.***
 If things seem wonky, it's because I'm a noob to both C# and Unity. Here is a record of some 
 notes I thought to include when it comes to making changes within the Unity game file. 
 
+#### **"Under Construction" Progress Updates**
+* Mike was able to trigger hand-waving in tutorial before clicking. This locked him out of progression out of the tutorial.
+
+
+#### **Compiling***
+* A reoccuring problem whenever I try to build across platforms is that the "System.Windows.Forms.dll is not allowed to be included or could not be found". I originally fixed this by switching the Scripting Runtime Version and API Compatibility Level to .NET 4.x within the Player Build Settings.
+
+* When compiling for a WebGL platform, I needed to also copy the Mono.Posix and Mono.WebBrowser DLL from
+"C:\Program Files\Unity\Hub\Editor\2018.4.23f1\Editor\Data\MonoBleedingEdge\lib\mono\gac"
+
+* 08.25.20 - Dynamic linking (DLL imports) are currently not supported by WebAssembly (this is a Unity-end bug). This is a problem for WebGL and creates the JavaScript error "To use dlopen, you need to use Emscripten's linking support..." in (at least) the chrome browser. When I compile the plugins, they "should be authored to link statically to the project instead"
+
+
 #### **Asset Organization** 
 * I uploaded the "standard assets" package because it simplified some of the elements that I wanted to use. 
 However, there are a lot of things in this package that I did NOT use. This *should* be cleaned out, but I have done this yet.
