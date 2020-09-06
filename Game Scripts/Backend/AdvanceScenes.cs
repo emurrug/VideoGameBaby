@@ -11,15 +11,24 @@ public class AdvanceScenes : MonoBehaviour
     public string block; //can be referenced to get current block
 
 
+    void Start()
+    {
+        CurrentBlock();
+    }
     void Update()
     {
         //restricts subs from continuing without the researcher
         //researcher instructs them to hit "C" to move to informed consent
-        if (Input.GetKeyDown(KeyCode.C))
+        if (Input.GetKeyDown(KeyCode.C) && block == "0.PleaseWait")
         {
             SceneManager.LoadScene(1);
         }
 
+        //quits the game if the subject ever presses the ESC key
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            Application.Quit();
+        }
     }
 
     //advances to subject registration (id/condition input)

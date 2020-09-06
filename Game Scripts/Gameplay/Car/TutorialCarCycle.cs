@@ -52,7 +52,8 @@ public class TutorialCarCycle : MonoBehaviour
         }
 
         //adds a point if they press space while the car is moving
-        if (Input.GetKeyDown(KeyCode.Space) && ReachedDestination == false && AlreadyScored == false)
+        if (Input.GetKeyDown(KeyCode.Space) && ReachedDestination == false
+            && AlreadyScored == false && Dialogue.Advances > 6)
         {
             scoreValue += 1;
             AlreadyScored = true;

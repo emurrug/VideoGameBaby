@@ -1,4 +1,4 @@
-Emma's notes! (Updated 08.24.2020)
+Emma's notes! (Updated 08.27.2020)
 
 *****************************
 ***Point of "Virtual Baby"***
@@ -65,20 +65,27 @@ who want to recycle the code for their own use.***
 ***Bits and Boops (E.M.'s dev habits)***
 *************************************
 If things seem wonky, it's because I'm a noob to both C# and Unity. Here is a record of some 
-notes I thought to include when it comes to making changes within the Unity game file.
-I admittedly got lazy with this section so plan on updates to come.
+notes I thought to include when it comes to making changes within the Unity game file. 
 
 #### **"Under Construction" Progress Updates**
-* Mike was able to trigger hand-waving in tutorial before clicking. This locked him out of progression out of the tutorial.
+* Mike was able to trigger hand-waving in tutorial before clicking. This locked him out of progression out of the tutorial. BUG-FIX UPDATE 09.06.20: added condition to prevent waving until tutorial dialogue prompts it.
+
+* 08.25.20 - Dynamic linking (DLL imports) are currently not supported by WebAssembly (this is a Unity-end bug). This is a problem for WebGL and creates the JavaScript error "To use dlopen, you need to use Emscripten's linking support..." in (at least) the chrome browser. When I compile the plugins, they "should be authored to link statically to the project instead"
+
+I went through the plugins and tested for problematic DLLS, and found out it was MySql.Data.dll. This is a problem because it is fundamentally a .NET class that cannot be converted into JavaScript (which makes it playable within a web browser). I would have to rewrite my DBconnect code, likely to point to a JS file which is readable by WebGL. I will consult Mike, but I would rather persue the MacOS and Windows platforms only at this time (but I must find a way to get around the Mac security concerns)
 
 
 #### **Compiling***
+* For the Windows platform, Inno Setup Compiler software was used so that I could distribute the game installer (rather than the .exe and data files as a .zip).
+
+* For the Mac platform, it is necessary to adjust the permissions while in the developing Mac desktop. Otherwise the file contents associated with the app won't be recognized. To do this, I entered the executed the following from the cmd terminal: "chmod a+x CarWavingGame.app/Contents/MacOS/*"
+
+
 * A reoccuring problem whenever I try to build across platforms is that the "System.Windows.Forms.dll is not allowed to be included or could not be found". I originally fixed this by switching the Scripting Runtime Version and API Compatibility Level to .NET 4.x within the Player Build Settings.
 
 * When compiling for a WebGL platform, I needed to also copy the Mono.Posix and Mono.WebBrowser DLL from
 "C:\Program Files\Unity\Hub\Editor\2018.4.23f1\Editor\Data\MonoBleedingEdge\lib\mono\gac"
 
-* 08.25.20 - Dynamic linking (DLL imports) are currently not supported by WebAssembly (this is a Unity-end bug). This is a problem for WebGL and creates the JavaScript error "To use dlopen, you need to use Emscripten's linking support..." in (at least) the chrome browser. When I compile the plugins, they "should be authored to link statically to the project instead"
 
 
 #### **Asset Organization** 
