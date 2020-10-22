@@ -1,12 +1,12 @@
-Emma's notes! (Updated 10.14.2020)
+Emma's notes! (Updated 10.22.2020)
 
 *****************************
 ***Point of "Virtual Baby"***
 *****************************
 Virtual baby was designed as a way to tap into how parenthood changes
-perception of threat in the world. It was a way to threaten infants 
-and see how parents perceive those threats, without endangering or
-stressing anybody too much. In the game, subs will see a crawling infant 
+perception of threat in the environment. It was a way to threaten infants 
+and see how parents perceive those threats (without endangering or
+stressing anybody too much). In the game, subjects will see a crawling infant 
 near an active road with cars. The goal of parents is twofold: 
 
 1. make sure their infant doesn't get hit 
@@ -29,10 +29,10 @@ Here is some important information about the relevant files for this project.
 #### **Publicly Available Builds**
 This game is being hosted on itch.io (free game-sharing platform). There is a MAC and Windows
 build ready to install at the following link: 
-https://murrugarra.itch.io/baby-lab-videogame/download/x_GqoXSRxsiDHiV5mi9gl9awgWQ7p_HqpdI8Uavi
+https://cornell-baby-lab.itch.io/
 
 This link can be used to see what the game looks like in practice or to run test subjects. 
-As of 08.24.20, the game hosted at this link is meant for pilot participants only.
+As of 10.22.20, the game hosted at this link is still under construction
 
 #### **Complete Packaged Game File (must be opened in Unity)**
 In this folder, there is a single Unity package file of the most recent game version in development. 
@@ -68,14 +68,17 @@ If things seem wonky, it's because I'm a noob to both C# and Unity. Here is a re
 notes I thought to include when it comes to making changes within the Unity game file. 
 
 #### **"Under Construction" Progress Updates**
-*10.14.20 I added code to lock the player camera (by pausing mouse input in whatever position it was in) when answering the mph question. This may make less disorienting for subjects? (made changes to carcycle, tutorial carcycle, and dialogue 1). I opted not to move the camera to reset it to a forward position, because this might run in conflict with the camera locking that happens during the "pick up baby" animation. 
+* 10.14.20 - Changes:
+  * added code to lock camera (in whatever position it was in) when answering mph prompt (note: do not adjust to reset camera, as this conflicts with "pick up baby" animation)
+  * adjusted the instructions to make it ultra clear to use the mouse to move and advance
+  * made sure the informed consent was contingent on subject condition (press "n" for nonparent" or "p" for parent" in the second line)
+  * added 10 more neutral trials to the end of the baby trials for 30 total trials
 
-Set up flow logic based on registration input. For now, omit counterbalancing and instead focus on a neutral-baby-neutral (30 trials) scene order (this also helps get around the need to move the tutorials around). However, make sure consent is parent vs nonparent specific.
+NOTE: scripts folders have not yet been updated as of 10.22.20
 
-* 10.13.20 Something is wrong where the car does not appear as fast as 30-70 mph. Need to reconfigure the speeds to match the appropriate timing. Found out that maxDeltaTime (in the MoveToward() method) corresponds to the units on the X scale (gauged by position). So the car travels 258 units (distance between origin and destination) in 1 sec. Each unit corresponds roughly to one foot; speed at 258 = ~176 mph. UPDATE 10.14.20: new list is updated with appropriate speed conversions. Everything looks so fast now o_o. Also increased the range by 5 sec for timed delay between car loops to make it appear more random.
+* 10.13.20 - Something is wrong where the car does not appear as fast as 30-70 mph. Need to reconfigure the speeds to match the appropriate timing. Found out that maxDeltaTime (in the MoveToward() method) corresponds to the units on the X scale (gauged by position). So the car travels 258 units (distance between origin and destination) in 1 sec. Each unit corresponds roughly to one foot; speed at 258 = ~176 mph. BUG FIX UPDATE 10.14.20: new list is updated with appropriate speed conversions. Everything looks so fast now o_o. Also increased the range by 5 sec for timed delay between car loops to make it appear more random.
 
-I found out that my datalog is lagging still, such that the given event is a row behind each timestamp. 
-
+* 10.13.20 I found out that my datalog is lagging still, such that the given event is a row behind each timestamp. BUG FIX UPDATE 10.14.20: fixed by adding second delay to event outputs. Should not impact statistical analysis, but does mean there is a consistent 1sec delay on every row.
 
 * Mike was able to trigger hand-waving in tutorial before clicking. This locked him out of progression out of the tutorial. BUG-FIX UPDATE 09.06.20: added condition to prevent waving until tutorial dialogue prompts it.
 
