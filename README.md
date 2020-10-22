@@ -68,6 +68,15 @@ If things seem wonky, it's because I'm a noob to both C# and Unity. Here is a re
 notes I thought to include when it comes to making changes within the Unity game file. 
 
 #### **"Under Construction" Progress Updates**
+*10.14.20 I added code to lock the player camera (by pausing mouse input in whatever position it was in) when answering the mph question. This may make less disorienting for subjects? (made changes to carcycle, tutorial carcycle, and dialogue 1). I opted not to move the camera to reset it to a forward position, because this might run in conflict with the camera locking that happens during the "pick up baby" animation. 
+
+Set up flow logic based on registration input. For now, omit counterbalancing and instead focus on a neutral-baby-neutral (30 trials) scene order (this also helps get around the need to move the tutorials around). However, make sure consent is parent vs nonparent specific.
+
+* 10.13.20 Something is wrong where the car does not appear as fast as 30-70 mph. Need to reconfigure the speeds to match the appropriate timing. Found out that maxDeltaTime (in the MoveToward() method) corresponds to the units on the X scale (gauged by position). So the car travels 258 units (distance between origin and destination) in 1 sec. Each unit corresponds roughly to one foot; speed at 258 = ~176 mph. UPDATE 10.14.20: new list is updated with appropriate speed conversions. Everything looks so fast now o_o. Also increased the range by 5 sec for timed delay between car loops to make it appear more random.
+
+I found out that my datalog is lagging still, such that the given event is a row behind each timestamp. 
+
+
 * Mike was able to trigger hand-waving in tutorial before clicking. This locked him out of progression out of the tutorial. BUG-FIX UPDATE 09.06.20: added condition to prevent waving until tutorial dialogue prompts it.
 
 * 08.25.20 - Dynamic linking (DLL imports) are currently not supported by WebAssembly (this is a Unity-end bug). This is a problem for WebGL and creates the JavaScript error "To use dlopen, you need to use Emscripten's linking support..." in (at least) the chrome browser. When I compile the plugins, they "should be authored to link statically to the project instead"
@@ -113,5 +122,5 @@ game objects interact and if they are accessible, so please be careful here.
 * The baby object is equipped with a fairly detailed skeleton, and can move
 in more complex ways than is currently being used. This may be useful for future projects.
 
-* Wind, shadowing, textures, car colors etc. are all controlled for because they may impact perception.
+* Wind, shadowing, textures, car colors etc. are all controlled for because they may impact perception or judgmenets of threat.
 
