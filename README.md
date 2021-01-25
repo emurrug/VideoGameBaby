@@ -32,7 +32,7 @@ build ready to install at the following link:
 https://cornell-baby-lab.itch.io/
 
 This link can be used to see what the game looks like in practice or to run test subjects. 
-As of 10.22.20, the game hosted at this link is still under construction
+As of 01.18.2021, the game hosted at this link is released (~40 subjects have been run so far), but a patches are still coming out
 
 #### **Complete Packaged Game File (must be opened in Unity)**
 In this folder, there is a single Unity package file of the most recent game version in development. 
@@ -46,7 +46,7 @@ This game was designed in Unity Version 2018.4.23f1 (free). Please install and r
 #### **Game Objects (includes model and animation files)**
 For reference on some of the assets that I used or models that were created (e.g., the virtual baby).
 All assets are free and publicly available, or were otherwise crafted by Emma. All crafted
-models/animations were done in Blender (recommended). 
+models/animations were done in Blender (free; recommended). 
 
 #### **Game Scripts**
 Other than what I have done in Unity, I don't really know any C#. So I do my best to notate my methods
@@ -65,16 +65,23 @@ who want to recycle the code for their own use.***
 ***Bits and Boops (E.M.'s dev habits)***
 *************************************
 If things seem wonky, it's because I'm a noob to both C# and Unity. Here is a record of some 
-notes I thought to include when it comes to making changes within the Unity game file. 
+notes I thought to include when it comes to making changes within the game files. 
 
 #### **"Under Construction" Progress Updates**
+* 01.14.21 - Three problems: 
+  * The car speeds are not being presented at the same rate. The slowest car speed is being presented twice as often as any other speed. UPDATE 01.19.21: The speed was being internally randomized twice per trial- once during the RandomWaitDelay function when determining the speed, and again when selecting which speed was getting removed from the sample list. Additionally, the speed was being initialized twice on start, although this should have no impact in presentation (but it may have messed with which trial was being recorded first). The additional specifications of speeds and speedslist indices have been removed.
+	
+  * Data logging misses the speed estimate on the 10th trial of block 1 and 2 (it seems like the button isn't acting as a data submission trigger like normal)
+  * Participants are really bad at guessing mph (and some don't even know mph or can't drive), so we decided to change units to a likert scale (very slow - very fast) instead of a free text speed option
+  * Need to add "this ends the tutorial" instructions, so they don't continue
+
 * 10.14.20 - Changes:
   * added code to lock camera (in whatever position it was in) when answering mph prompt (note: do not adjust to reset camera, as this conflicts with "pick up baby" animation)
   * adjusted the instructions to make it ultra clear to use the mouse to move and advance
   * made sure the informed consent was contingent on subject condition (press "n" for nonparent" or "p" for parent" in the second line)
   * added 10 more neutral trials to the end of the baby trials for 30 total trials
 
-NOTE: scripts folders have not yet been updated as of 10.22.20
+NOTE: scripts folders have not yet been updated as of 01.18.21
 
 * 10.13.20 - Something is wrong where the car does not appear as fast as 30-70 mph. Need to reconfigure the speeds to match the appropriate timing. Found out that maxDeltaTime (in the MoveToward() method) corresponds to the units on the X scale (gauged by position). So the car travels 258 units (distance between origin and destination) in 1 sec. Each unit corresponds roughly to one foot; speed at 258 = ~176 mph. BUG FIX UPDATE 10.14.20: new list is updated with appropriate speed conversions. Everything looks so fast now o_o. Also increased the range by 5 sec for timed delay between car loops to make it appear more random.
 
@@ -126,4 +133,8 @@ game objects interact and if they are accessible, so please be careful here.
 in more complex ways than is currently being used. This may be useful for future projects.
 
 * Wind, shadowing, textures, car colors etc. are all controlled for because they may impact perception or judgmenets of threat.
+
+* Participants lock onto one position, so it may be useful to have cars coming from both directions to increase attentional demands
+
+* It is worth thinking about non-baby objects that might also move around and demand attention to add in as a control
 
