@@ -68,16 +68,20 @@ If things seem wonky, it's because I'm a noob to both C# and Unity. Here is a re
 notes I thought to include when it comes to making changes within the game files. 
 
 #### **"Under Construction" Progress Updates**
+
+*02.11.21: changed the compensation in the informed consent to reflect SONA credits OR Amazon gift card
+
 * 01.27.21 - Running the study online (where timing events are based on fps) is causing some real time variance in carspeeds. This may warrant increasing the distance between stimulus speeds in the future. For now, just make sure to analyze based on true speed (using ms timing).
 
 * 01.14.21 - Three problems: 
   * The car speeds are not being presented at the same rate. The slowest car speed is being presented twice as often as any other speed. UPDATE 01.19.21: The speed was being internally randomized twice per trial- once during the RandomWaitDelay function when determining the speed, and again when selecting which speed was getting removed from the sample list. Additionally, the speed was being initialized twice on start, although this should have no impact in presentation (but it may have messed with which trial was being recorded first). The additional specifications of speeds and speedslist indices have been removed.
 	
-  * Data logging misses the speed estimate on the 10th trial of block 1 and 2 (it seems like the button isn't acting as a data submission trigger like normal)
+  * Data logging misses the speed estimate on the 10th trial of block 1 and 2 (it seems like the button isn't acting as a data submission trigger like normal). UPDATE 01.25.21: Changed CarCycle so that there was a time delay (1s) between submitting speed estimate on 10th/20th/30th trial and proceeding to the next scene.
 
   * Participants are really bad at guessing mph (and some don't even know mph or can't drive), so we decided to change units to a likert scale (very slow - very fast) instead of a free text speed option. UPDATE 01.25.21: the scale object replaced the inputfield object (that way the code didn't need to change much). This impacted code in CarCycle, TutorialCarCycle, and Dialogue (to reset the slider), Narrative 1, NeutralScene, and BabyScene (to record estimated speed). I will add a couple questions into the debrief section to ask about mph/km estimates.
 
   * Need to add "this ends the tutorial" instructions, so they don't continue. UPDATE 01.25.21: just added "click to continue" as an explicit instruction.
+
 
 * 10.14.20 - Changes:
   * added code to lock camera (in whatever position it was in) when answering mph prompt (note: do not adjust to reset camera, as this conflicts with "pick up baby" animation)
