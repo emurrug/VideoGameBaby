@@ -1,4 +1,4 @@
-Emma's notes! (Updated 10.22.2020)
+Emma's notes! (Updated 02.11.2021)
 
 *****************************
 ***Point of "Virtual Baby"***
