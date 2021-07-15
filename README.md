@@ -20,6 +20,7 @@ are car-detection RT and estimated mph. The IV is parenthood vs. no-children adu
 The P.I. on this project is Emma Murrugarra (eam422@cornell.edu) working under the supervision
 of Michael Goldstein (mhg26@cornell.edu) in the B.A.B.Y. Lab at Cornell University. 
 
+**NOTE:** As of 07.15.21, construction for new versions of Virtual Baby is underway. The new versions will feature immature speech and locomotion stimuli, as well as integrate electrophysiological sensors. See branching file directory for more information. 
 
 ****************
 ***File Navigation***
