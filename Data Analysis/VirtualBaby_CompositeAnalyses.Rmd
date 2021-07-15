@@ -1,0 +1,698 @@
+---
+title: "Analyzing Virtual Baby (stable Rmd script)"
+date: "5/1/2021"
+output: word_document
+---
+
+### Brief Description of Document
+*It has occurred to me that I would like a more permanent document to be able to reproduce analyses and figures. I am abstaining from putting the raw data on github for now, just because it isn't published yet. However, I will try to just work from this one RMarkdown file whenever I am doing analyses for Virtual Baby. Hopefully, this makes it easier to find everything!*
+
+*Note: By distributing the raw .Rmd file, one can use* `include=TRUE` *to include output, or* `echo=TRUE` *to include code. i.e., this report can be catered to different audiences without changing any of the contents*
+
+**Virtual Baby (VB)** has 2 main hypotheses: 
+
+* Parents are more likely to rate oncoming threats (a car) as moving faster than non-parents
+* Parents are more likely to detect oncoming threats faster than non-parents
+
+## Setting up
+*Hidden code*: To import necessary R packages and files. Currently files are stashed locally, but I would like to move them to GitHub soon. 
+```{r library, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+#library
+library(knitr)
+library(tibble)
+library(dplyr) #please do not load plyr!
+library(tidyr)
+library(scales)
+library(ggplot2)
+library(emmeans)
+library(lme4)
+library(ggridges)
+library(lmerTest)
+```
+
+```{r df, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+#yes...it's on my desktop
+df <- read.csv("C:/Users/Guack/Desktop/babygamedata_04.30.csv")
+demos <- read.csv("C:/Users/Guack/Desktop/Qualtrics_Demos_04.30.csv")
+```
+
+## Cleaning The Data (Pre-Processing)
+*Description:* These were the steps taken to get the data in the right format for analysis. 
+
+* The `df` file was pre-cleaned from the raw download by removing pilots (before 02.18.21), and removing P56 due to technical difficulties
+* The `demos` file was pre-cleaned by removing pilots, adding ID and Condition (according to experimenter log)
+
+*Hidden Code*: For the following process
+
+* Remove non-trial blocks (Registration and Tutorial Blocks)
+* Relabel blocks from Unity output to more interpretable names
+* Creating a unique identifier per trial within subject 
+* Creating sum variables for PROMIS scores (depression & anxiety)
+* Reducing demos to vars of interest (age, gender, race, primary_language, anxiety, depression, videogames, relationship, number_children, baby_mobility, breastfeed)
+* Merging `df` and `demos` (combined long- and wide-format datasheet)
+
+```{r clean, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+df <- df[!df$block == "3.Narrative1",] 
+df <- df[!df$block =="5.Narrative2",]
+df <- df[!df$block =="9.Narrative3",]
+df <- df[!df$block =="2.Registration",]
+
+recode_if <- function(x, condition, ...) {
+  if_else(condition, recode(x, ...), x)
+}
+df <- df %>% 
+  mutate(block = recode_if(block, is.na(df$babylocation) == TRUE & 
+                             df$block == "4.NeutralScene", 
+                           "4.NeutralScene" = "block1"),
+         block = recode_if(block, is.na(df$babylocation) == FALSE & 
+                             df$block == "4.NeutralScene", 
+                           "4.NeutralScene" = "block3"),
+         block = recode_if(block, is.na(df$babylocation) == FALSE & 
+                             df$block == "6.BabyScene", 
+                           "6.BabyScene" = "block2"))
+
+df <-df %>% mutate ("uniquecode" = paste(subcondition, id, trial, carspeed, block))
+```
+
+
+```{r merge, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+demos <- demos %>% mutate('anxiety' = PROMIS_1 + PROMIS_2 + PROMIS_3
+                      + PROMIS_4 + PROMIS_5 + PROMIS_6 + PROMIS_7
+                      + PROMIS_8) %>% 
+  mutate('depression' = PROMIS_9 + PROMIS_10 + PROMIS_11
+         + PROMIS_12 + PROMIS_13 + PROMIS_14 + PROMIS_15 + PROMIS_16)
+
+#(easy to add more as needed, just be sure to change the loop below too)
+demos <- demos %>% select(id, subcondition, age, gender, race, primary_language, anxiety, depression, videogames, relationship, number_children, baby_mobility, breastfeed)
+df <- df %>% 
+  add_column(age = NA, gender = NA, race = NA, primary_language = NA, anxiety = NA, 
+             depression = NA, videogames = NA, relationship = NA, number_children = NA, baby_mobility = NA, breastfeed = NA, )
+
+for(i in 1:dim(df[1])){
+  for(j in 1:dim(demos[1])){
+    if(df$id[i] == demos$id[j]){
+      df$age[i] = demos$age[j] 
+      df$gender[i] = demos$gender[j] 
+      df$race[i] = demos$race[j] 
+      df$primary_language[i] = demos$primary_language[j] 
+      df$anxiety[i] = demos$anxiety[j] 
+      df$depression[i] = demos$depression[j]
+      df$videogames[i] = demos$videogames[j]
+      df$relationship[i] = demos$relationship[j]
+      df$number_children[i] = demos$number_children[j]
+      df$baby_mobility[i] = demos$baby_mobility[j]
+      df$breastfeed[i] = demos$breastfeed[j]
+    }
+  }
+}
+
+```
+
+
+
+## Demographic Descriptives
+*Description*: A series of tables that break down the demographic information of the different subjects. There is still data to be analyzed, but requires additional data pre-processing.
+
+The following demos till needs to be hand-coded: 
+
+* Age of baby
+* Baby Mood
+* Debrief (confusion, strategies, fear for baby, fear of losing)
+
+```{r relabelingdemos, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+#relabeling factors to make codes prettier
+demos$subcondition <- recode(demos$subcondition, n="Non-Parent", p="Parent")
+df$subcondition <- recode(df$subcondition, n="Non-Parent", N="Non-Parent", p="Parent", P="Parent")
+demos$gender <- as.factor(demos$gender)
+demos$gender <- recode(demos$gender, "1"="Male", "2"="Female")
+demos$race <- recode(demos$race, "1"="Black", "2"="White", "3"="S. Asian", "4" = "Am. Native", "5"= "Pacific Islander", 
+                     "6"="Other", "7"="E. Asian", "8"="M.Eastern", "9"="Hispanic/Latino", "2,7"="White/Other", "2,9"="White/Other")
+demos$white <-recode(demos$race, "White" = "1", .default = "0")
+demos$videogames <-recode(demos$videogames, "1" = "Experienced", "2" = "Inexperienced")
+demos$relationship <- recode(demos$relationship, "1"="Married", "2"="Widowed", "3"="Separated", "4" = "Never Married", "5"= "In a Relationship", "6"="Cohabiting", "7"="Single", "4,7" = "Single")
+demos$baby_mobility<-recode(demos$baby_mobility, "1"="Sit", "1,2" = "Sit", "1,4" = "Sit", "1,2,3" = "Crawl", "2,3" = "Crawl", "1,2,3,4" = "Walk", "1,2,3,4,5" = "Walk", "5" = "Walk", "6" = "Pre-Sitting")
+demos$breastfeed <- recode(demos$breastfeed, "1" = "Yes, in the past", "2"="Yes, currently", "3"="No, Never")
+```
+
+```{r counts, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+demos %>% group_by(subcondition) %>% 
+  summarise(Count=n()) %>% 
+  kable(., digits = 2, caption = "Total Count per Condition")
+```
+
+
+```{r demos, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+demos %>%
+  group_by(subcondition) %>% 
+  summarise(Mean=mean(age), Min=min(age), Max=max(age), Median=median(age), SD=sd(age)) %>% 
+  kable(., digits = 2, caption = "Age Descriptives")
+
+demos %>%
+  group_by(subcondition, gender) %>% 
+  summarise(Count=n()) %>% 
+  mutate(Proportion = prop.table(Count)*100) %>% 
+  kable(., digits = 2, caption = "Gender Descriptives")
+
+demos %>%
+  group_by(subcondition, race) %>% 
+  summarise(Count=n()) %>% 
+  mutate(Proportion = prop.table(Count)*100) %>% 
+  kable(., digits = 2, caption = "Race Descriptives")
+demos %>%
+  group_by(subcondition, white) %>% 
+  summarise(Count=n()) %>% 
+  mutate(Proportion = prop.table(Count)*100) %>% 
+  kable(., digits = 2, caption = "Race Descriptives (Identifying as White Only)")
+
+demos %>%
+  group_by(subcondition) %>% 
+  summarise(Mean=mean(anxiety), Min=min(anxiety), Max=max(anxiety), Median=median(anxiety), SD=sd(anxiety)) %>% 
+  kable(., digits = 2, caption = "Anxiety Scores (higher = more symptoms)")
+demos %>%
+  na.omit(depression) %>% 
+  group_by(subcondition) %>%
+  summarise(Mean=mean(depression), Min=min(depression), Max=max(depression), Median=median(depression), SD=sd(depression)) %>% 
+  kable(., digits = 2, caption = "Depression Scores (higher = more symptoms)")
+
+demos %>%
+  group_by(subcondition, videogames) %>% 
+  summarise(Count=n()) %>% 
+  mutate(Proportion = prop.table(Count)*100) %>% 
+  kable(., digits = 2, caption = "Videogame Descriptives")
+
+demos %>%
+  group_by(subcondition, relationship) %>% 
+  summarise(Count=n()) %>% 
+  mutate(Proportion = prop.table(Count)*100) %>% 
+  kable(., digits = 2, caption = "Relationship Descriptives")
+```
+
+
+### Parent-Only Demographics
+```{r babydemos, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+demos %>% 
+  filter(subcondition == "Parent") %>% 
+  group_by(number_children) %>% 
+  summarise(Count=n()) %>%  
+  kable(., digits = 2, caption = "Number of Children")
+
+demos %>% 
+  filter(subcondition == "Parent") %>% 
+  group_by(baby_mobility) %>% 
+  summarise(Count=n()) %>%  
+  kable(., digits = 2, caption = "Highest Level of Baby Mobility")
+
+demos %>% 
+  filter(subcondition == "Parent") %>% 
+  group_by(breastfeed) %>% 
+  summarise(Count=n()) %>%  
+  kable(., digits = 2, caption = "Does Baby Breastfeed?")
+```
+
+Other demographics not listed here include **English as Primary Language**, **Education**, **Ages of Other Children**, **Partner Demographics**, **Baby Health Complications**, **Baby Mood**, **Hours with Caretaker**, **Debriefs about Strategies and Feelings**
+
+
+## Descriptives of Main DV's
+
+### Reaction Time (Threat *Detection*)
+**Description**: This DV reflects time from car onset to first SPACE PRESSED (i.e., RT to car detection). Notably, it does not measure error time, because participants have freedom to move their cameras and there are also some obstacles obscuring the car at start. It is only a measure of RT that can be compared between groups. 
+
+*Hidden code*: to describe the following
+
+* Isolating "true" trials to be kept for analysis, meaning that each trial has only one instance of "Car Start", "Space Pressed" and "Car End" each
+* Representing missed and spammed trials
+* Calculate speed for "Car Start" - "Space Pressed" (RT)
+
+
+```{r isolatingtruetrials, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+#isolating a variable I can use for later (Bpresses) before changing what df is
+df_pretrues <- df
+
+#isolating the three critical events of each trial so that we have ONLY 3 per trial
+#the 3 critical events are selected by removing other instances in the same trial in later rows
+df_scores <- df %>% filter(givenevent == "Score (Space Pressed)")
+df_carstart <- df %>% filter(givenevent == "Car Starts")
+df_carend <- df %>% filter(givenevent == "Car Ends")
+
+#df of just the first unique instance of each event
+df_uniquescores <- df_scores %>% distinct(givenevent, uniquecode, .keep_all = TRUE)
+df_uniquestarts <- df_carstart %>% distinct(givenevent, uniquecode, .keep_all = TRUE)
+df_uniqueends <- df_carend %>% distinct(givenevent, uniquecode, .keep_all = TRUE)
+
+#df of just events that are to be filtered out for being anything but the first instance
+#(Note: this step isn't strictly necessary, but I wanted to keep a separate record of exclusions)
+df_scoredupes <- df_scores[!df_scores$rowid %in% df_uniquescores$rowid,]
+df_startdupes <- df_carstart[!df_carstart$rowid %in% df_uniquestarts$rowid,]
+df_enddupes <- df_carend[!df_carend$rowid %in% df_uniqueends$rowid,]
+
+#removing the filter df from the main df
+df <- df[!df$rowid %in% df_scoredupes$rowid,]
+df <- df[!df$rowid %in% df_startdupes$rowid,]
+df <- df[!df$rowid %in% df_enddupes$rowid,]
+
+#exclude all trials where subs didn't have all of the critical three (car start, score, car end)
+df <- df[df$uniquecode %in% df_scores$uniquecode,]
+df <- df[df$uniquecode %in% df_carstart$uniquecode,]
+df <- df[df$uniquecode %in% df_carend$uniquecode,]
+```
+#### Spams and Whiffs
+Averages for trials where participants spammed space or missed the car entirely.
+
+```{r missedtrials, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+#trials where the subject pressed space more than once
+df_scoredupes %>% 
+  group_by(id, subcondition, block) %>% 
+  summarise(SpacePresses = n()) %>% 
+  group_by(subcondition, block) %>%
+  summarise(AverageExtraSpacePresses = mean(SpacePresses)) %>% 
+  kable(., digits = 2, caption = "Average number of additional space presses")
+
+#trials where the subject failed to press space
+df_scores %>% 
+  filter(response == 10 | response == 20 | response == 30) %>%
+  select(id, subcondition, block, trial, response) %>% 
+  mutate(misses = as.numeric(trial) - 10) %>% 
+  filter(misses > 0) %>% 
+  group_by(subcondition, block) %>% 
+  summarise(AverageTrialsMissed = mean(misses)) %>% 
+  kable(., digits = 2, caption = "Average number of trials subject failed to wave the car")
+```
+
+```{r RTs, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+JustRTs <- df %>% 
+  filter(givenevent == "Score (Space Pressed)" | givenevent == "Car Starts") %>% 
+  arrange(rowid) %>% #done to make sure everything is absolutely in chronological order
+  mutate(timesincecarstart = timenow - lag(timenow, default = first(timenow))) %>% 
+  filter(givenevent == "Score (Space Pressed)" & timesincecarstart < 10) #filters out RT outliers due to trial gaps
+```
+
+#### Reaction Time Averages
+```{r RTsrepresent, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+JustRTs %>% 
+  group_by(subcondition, block) %>% 
+  summarise(AverageRT = mean(timesincecarstart)) %>% 
+  kable(.,digits = 3, caption = "Average RT between car onset and wave (in seconds)" )
+
+JustRTs %>% 
+  group_by(subcondition) %>% 
+  summarise(AverageRT = mean(timesincecarstart)) %>% 
+  kable(.,digits = 3, caption = "Average RT between car onset and wave (in seconds)" )
+```
+
+```{r RTsgraph, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+##the below is just for powerpoint slides
+ggplot(JustRTs, aes(x=reorder(subcondition, -timesincecarstart), y = timesincecarstart)) +
+  geom_boxplot(fill = "lightblue") + scale_y_continuous(limit=c(1, 3)) + theme_classic() + xlab("Parental Status") + ylab("Average Reaction Time") + ggtitle("Average RTs (collapsing across blocks)")
+
+#All for dem sweet sweet spaghetti plots
+Parent_RT_MeansByID <- JustRTs %>% 
+  filter(subcondition == "Parent") %>% 
+  group_by(id, block) %>% 
+  summarize(mean = mean(timesincecarstart))
+NonParent_RT_MeansByID <- JustRTs %>% 
+  filter(subcondition == "Non-Parent") %>% 
+  group_by(id, block) %>% 
+  summarize(mean = mean(timesincecarstart))
+RT_MeansByCond <- JustRTs %>% 
+  group_by(subcondition, block) %>% 
+  summarize(mean = mean(timesincecarstart))
+
+ggplot(Parent_RT_MeansByID, aes(x=block, y = mean, group = id, color = id)) +
+  geom_line() + geom_point() + 
+  xlab("Condition") + ylab("Average Reaction Time") + ggtitle("RTs of Parent Participants") +
+  scale_x_discrete(labels = c("block1" = "Before Baby", "block2" = "Baby Present", "block3" = "After Baby"))
+ggplot(NonParent_RT_MeansByID, aes(x=block, y = mean, group = id, color = id)) +
+  geom_line() + geom_point() + 
+  xlab("Condition") + ylab("Average Reaction Time") + ggtitle("RTs of Non-Parent Participants") +
+  scale_x_discrete(labels = c("block1" = "Before Baby", "block2" = "Baby Present", "block3" = "After Baby"))
+ggplot(RT_MeansByCond, aes(x=block, y = mean, group = subcondition, color = subcondition)) +
+  geom_line() + geom_point() + 
+  xlab("Condition") + ylab("Average Reaction Time") + ggtitle("Average RTs Between Parents and Non-Parents") +
+  scale_x_discrete(labels = c("block1" = "Before Baby", "block2" = "Baby Present", "block3" = "After Baby"))
+```
+
+**Summary**: Visually, it looks like there isn't a main effect difference between parents and non-parents. If we look at the trend, though, there appears to be some sort of interaction but in the opposite direction of the prediction. Analysis to investigate the significance of trend are to follow 
+
+### Speed Estimates (Threat *Distortion*)
+**Description**: The car speeds in the raw data reflect the time needed to travel 250 units (unit = approx 1ft). This is why they don't read as 30-70 mph in the raw output. In the pilot data, I used to relabel these levels, but I don't anymore since the speeds now are being measured as likert responses. In other words, I cannot compare estimate speed to actual speed anymore, but rather I can only compare between conditions.
+
+*Hidden code*: To describe the following
+
+* Double check that estimated speeds weren't collected more than once per trial (e.g. in a double-recording event due to recording lag)
+
+####Average Speed Estimates
+```{r isolatingtrueestimates, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+df_estimates <- df %>% filter(givenevent == "Estimated Speed")
+df_uniqueests <- df_estimates %>% distinct(givenevent, uniquecode, .keep_all = TRUE)
+df_estdupes <- df_estimates[!df_estimates$rowid %in% df_uniqueests$rowid,]
+df <- df[!df$rowid %in% df_estdupes$rowid,]
+df <- df[df$uniquecode %in% df_estimates$uniquecode,]
+```
+
+```{r speedrepresent, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+JustSpeeds <- df %>% filter(givenevent == "Estimated Speed")
+JustSpeeds$response <- as.numeric(JustSpeeds$response)
+
+JustSpeeds %>% 
+  group_by(subcondition, block) %>% 
+  summarise(AverageSpeed = mean(response)) %>% 
+  kable(.,digits = 3, caption = "Average Speed Estimate (Likert Score)" )
+
+JustSpeeds %>% 
+  group_by(subcondition) %>% 
+  summarise(AverageSpeed = mean(response)) %>% 
+  kable(.,digits = 3, caption = "Average Speed Estimate (Likert Score)" )
+```
+
+
+```{r speedgraph, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+##the below is just for powerpoint slides
+ggplot(JustSpeeds, aes(x=reorder(subcondition, -response), y = response)) +
+  geom_boxplot(fill = "lightblue")  + theme_classic() + xlab("Parental Status") + ylab("Average Speed Response") + 
+  ggtitle("Average Speeds (collapsed across blocks")
+
+#All for dem sweet sweet spaghetti plots
+Parent_Speed_MeansByID <- JustSpeeds %>% 
+  filter(subcondition == "Parent") %>% 
+  group_by(id, block) %>% 
+  summarize(mean = mean(response))
+NonParent_Speed_MeansByID <- JustSpeeds %>% 
+  filter(subcondition == "Non-Parent") %>% 
+  group_by(id, block) %>% 
+  summarize(mean = mean(response))
+Speed_MeansByCond <- JustSpeeds %>% 
+  group_by(subcondition, block) %>% 
+  summarize(mean = mean(response))
+
+ggplot(Parent_Speed_MeansByID, aes(x=block, y = mean, group = id, color = id)) +
+  geom_line() + geom_point() + 
+  xlab("Condition") + ylab("Estimated Speed (Likert)") + ggtitle("Estimated Speeds Parent Participants") +
+  scale_x_discrete(labels = c("block1" = "Before Baby", "block2" = "Baby Present", "block3" = "After Baby"))
+ggplot(NonParent_Speed_MeansByID, aes(x=block, y = mean, group = id, color = id)) +
+  geom_line() + geom_point() + 
+  xlab("Condition") + ylab("Estimated Speed (Likert)") + ggtitle("Estimated Speeds Non-Parent Participants") +
+  scale_x_discrete(labels = c("block1" = "Before Baby", "block2" = "Baby Present", "block3" = "After Baby"))
+ggplot(Speed_MeansByCond, aes(x=block, y = mean, group = subcondition, color = subcondition)) +
+  geom_line() + geom_point() + 
+  xlab("Condition") + ylab("Estimated Speed (Likert)") + ggtitle("Estimated Speeds Between Parents and Non-Parents") +
+  scale_x_discrete(labels = c("block1" = "Before Baby", "block2" = "Baby Present", "block3" = "After Baby"))
+```
+
+Checking scale bias (centralizing response bias)
+```{r speedgraph2, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+ggplot(JustSpeeds, aes(x=response, color = subcondition)) + 
+  geom_density() + xlab("Estimated Speed (Likert)")  + 
+  ggtitle("Distribution of Speed Estimates Overlap Between Conditions")
+
+```
+
+**Summary**: It looks like subjects tend to be centrally distributed in their scores, regardless of condition, and likely no main effect of parental status. However, there appears to be an interaction with presence of baby
+
+#### Stimuli checks
+**Description**:Code to look at how the actual stim presentation compared to the intended programmed presentation
+ 
+*Hidden code*: To describe the following
+
+* Comparing presentation speed to programmed speed
+* Collapsing the likert range to correspond to speed range
+
+```{r actualspeed, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+#special test to figure out if timing events actually match car speeds (comment out when not in use)
+#there are 258.81 ft in the car path (258.81 ft/s = 176 mph)
+#dividing the ft/s speed (carspeed) by 1.467 should equal the mph speed
+#258/timesincecarstart  / 1.467 = carspeed? lets test
+df$programmedMPH <- recode(df$carspeed, "44"="30", "59"="40", "73"="50", "88"="60", "103"="70")
+stim_pres_check <- df %>% filter(givenevent == "Car Ends" | givenevent == "Car Starts") %>% 
+  arrange(rowid) %>% 
+  mutate(timesincecarstart = timenow - lag(timenow, default = first(timenow))) %>%  
+  mutate(msmph = (258/timesincecarstart)/1.467) %>% filter(givenevent == "Car Ends")
+
+ggplot(stim_pres_check, aes(x = msmph, fill=programmedMPH)) + geom_density(alpha=0.50) + xlim(list=c(25,75)) +
+  ylab("MPH based on actual timing logs") + xlab("MPH based on programmed speed")
+
+```
+
+```{r Speederror, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+#need to get likert ratings from JustSpeeds to stim_pres_check
+for(i in 1:dim(stim_pres_check[1])){
+  for(j in 1:dim(JustSpeeds[1])){
+    if(stim_pres_check$uniquecode[i] == JustSpeeds$uniquecode[j]){
+      stim_pres_check$response[i] = JustSpeeds$response[j] 
+    }
+  }
+}
+
+#let's collapse the extreme responses
+stim_pres_check$CollapsedLikertRating <- recode(stim_pres_check$response, "1" = "1. Very Slow", "2" = "1. Very Slow", "3"="2. Slow", "4"="3. Neither Fast/Slow", "5" = "4. Fast", "6"= "5. Very Fast", "7"= "5. Very Fast")
+ggplot(stim_pres_check, aes(x = msmph, y = CollapsedLikertRating, fill=CollapsedLikertRating)) + geom_density_ridges(alpha=0.50) + xlim(list=c(25,75)) +
+  xlab("MPH based on actual timing logs") + facet_wrap(~subcondition)
+```
+**Summary**: Speeds degraded the faster the car was intended to be. This variation was likely introduced due to resolution and fps variation. Subject accuracy in speed estimates reflects psychophysics literature -- participants are less accurate with increasing speed magnitudes.
+
+
+### Picking up baby
+**Description**: Code to look at how often participants picked up the baby and where the baby was when they did. Notably, I had to make sure these events extended beyond those that were filtered for not being "true trials".
+```{r Bpresses, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+df_pretrues %>% filter(givenevent == "B Pressed") %>% 
+  #need to eliminate duplicates when they press space more than once
+  group_by(babylocation, subcondition) %>% summarize(count = n()) %>% 
+  kable(., digits = 2, caption = "Total B presses")
+
+numberB <- df_pretrues %>% filter(givenevent == "B Pressed") %>% 
+  #need to eliminate duplicates when they press space more than once
+  group_by(id, babylocation, subcondition) %>% summarize(count = n()) 
+  
+numberB %>% group_by(subcondition) %>% summarize("Average" = mean(count)) %>% 
+  kable(., digits = 2, caption = "Average B presses per subject across parental status")
+numberB %>% group_by(babylocation) %>% summarize("Average B Presses Per Subject" = mean(count)) %>% 
+  kable(., digits = 2, caption = "Average B presses per subject across baby location")
+
+```
+Were B preses significantly predicted by location? (yeah)
+```{r Bpressessig, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+lm_Bpress <- lm(count ~ babylocation, data=numberB)
+emmeans(lm_Bpress, "babylocation", contr = "pairwise", infer =TRUE)$contrast %>% 
+  kable(., digit=2, caption = "Difference in Average No. of B Presses")
+
+```
+
+
+
+## Significance Tests
+
+### Parents vs. NonParents on Threat *Detection*
+**Description**: Regression model where RT is predicted by interaction of trial block and parental status including random effects of block and ID.
+
+```{r RTtest, include=TRUE, echo = TRUE, message=FALSE, warning=FALSE}
+lm_RT <- lmer(timesincecarstart ~ block * subcondition + (1 + block|id), data = JustRTs)
+```
+
+```{r RTtestemmeans, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+emmeans(lm_RT, "block", contr = "pairwise", infer =TRUE)$contrast %>% 
+  kable(., digit=2, caption = "Average effect of block")
+emmeans(lm_RT, "subcondition", contr = "pairwise", infer =TRUE)$contrast %>% 
+  kable(., digit=2, caption = "Average effect of parental status")
+emmeans(lm_RT, "block", by="subcondition", contr="pairwise", infer=TRUE)$contrast %>% 
+  kable(., digit=2, caption = "Difference in block estimates by parental status")
+
+ref_RT <- ref_grid(lm_RT,at=list(timesincecarstart=c(0,1)))
+contrast(ref_RT, interaction = "pairwise") %>% 
+  kable(., digit=2, caption = "Interaction between block and parental status")
+```
+
+**Summary**: Potential interaction. There was a significant difference between block 2 and 3 and the effect is driven by the Parent group. P values and CIs for the parent vs. nonparent contrast is worth keeping an eye on.
+
+#### Non-Parametric Follow-up
+It's interesting how there appears to be a patter of greater absolute change among parents. Let's test!
+
+*Hidden code* the following steps were taken to prepare the data:
+
+* create new columns: (block 2-1) and (block 3-2)
+* get absolute magnitude (slope magnitude; t-test)
+* assess in binary "is block#-# smaller/larger than 0?" (sign test; chi-sq)
+
+```{r RTNP, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+RT_means <- JustRTs %>% 
+  group_by(id, subcondition, block) %>% 
+  summarise(Means = mean(timesincecarstart))%>% 
+  spread(block, Means) %>% 
+  mutate(Diff1to2 = block2 - block1) %>% 
+  mutate(Diff2to3 = block3 - block2) %>% 
+  na.omit(.)
+
+#absolute change test
+RT_means$Diff1to2Absolute <- abs(RT_means$Diff1to2)
+RT_means$Diff2to3Absolute <- abs(RT_means$Diff2to3)
+
+#sign test
+RT_means$Diff1to2Binary <- cut(RT_means$Diff1to2, c(-100,0,100), labels = c(0,1))
+RT_means$Diff2to3Binary <- cut(RT_means$Diff2to3, c(-100,0, 100), labels = c(0,1))
+```
+
+```{r RTNPtests, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+#binary signs test
+t1<- chisq.test(table(RT_means$subcondition, RT_means$Diff1to2Binary))
+t2<- chisq.test(table(RT_means$subcondition, RT_means$Diff2to3Binary))
+
+#slope magnitude test
+t3<- t.test(RT_means$Diff1to2Absolute ~ RT_means$subcondition)
+t4<- t.test(RT_means$Diff2to3Absolute ~ RT_means$subcondition)
+```
+
+```{r RTNPprettyifying, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+t1p = t1$p.value
+t2p = t2$p.value
+t3p = t3$p.value
+t4p = t4$p.value
+summary1 <- matrix(c(t1p, t2p, t3p, t4p), byrow = TRUE)
+colnames(summary1) <- c("P-values")
+rownames(summary1) <- c("chi-sq of Block 2-1", "chi-sq of Block 3-1", "t-test of Block 2-1", "t-test of Block 2-1")
+summary1 %>% kable(., caption = "Summary of p-values for each test")
+```
+
+**Summary**: There are no significant differences between parents and nonparents on slope magnitude or direction between blocks
+
+### Parents vs. NonParents on Threat *Distortion*
+
+**Description**: Regression model where Speed Estimate is predicted by interaction of trial block and parental status including random effects of block and ID.
+
+```{r speedtest, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+lm_speed <- lmer(response ~ block * subcondition + (1 + block|id), data = JustSpeeds)
+```
+
+```{r speedtestmeans, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+emmeans(lm_speed, "block", contr = "pairwise", infer =TRUE)$contrast %>% 
+  kable(., digit=2, caption = "Average effect of block")
+emmeans(lm_speed, "subcondition", contr = "pairwise", infer =TRUE)$contrast %>% 
+  kable(., digit=2, caption = "Average effect of parental status")
+emmeans(lm_speed, "block", by="subcondition", contr="pairwise", infer=TRUE)$contrast %>% 
+  kable(., digit=2, caption = "Difference in block estimates by parental status")
+
+ref_speed <- ref_grid(lm_speed,at=list(response=c(0,1)))
+contrast(ref_speed, interaction = "pairwise") %>% 
+  kable(., digit=2, caption = "Interaction between block and parental status")
+```
+
+**Summary**: No significant contrasts among interactions or main effects
+
+#### Non-Parametric Follow-up
+```{r SpeedNP, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+speed_means <- JustSpeeds %>% 
+  group_by(id, subcondition, block) %>% 
+  summarise(Means = mean(response))%>% 
+  spread(block, Means) %>% 
+  mutate(Diff1to2 = block2 - block1) %>% 
+  mutate(Diff2to3 = block3 - block2) %>% 
+  na.omit(.)
+
+#absolute change test
+speed_means$Diff1to2Absolute <- abs(speed_means$Diff1to2)
+speed_means$Diff2to3Absolute <- abs(speed_means$Diff2to3)
+
+#sign test
+speed_means$Diff1to2Binary <- cut(speed_means$Diff1to2, c(-100,0,100), labels = c(0,1))
+speed_means$Diff2to3Binary <- cut(speed_means$Diff2to3, c(-100,0, 100), labels = c(0,1))
+```
+
+```{r RTSpeedtests, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+#binary signs test
+t5<- chisq.test(table(speed_means$subcondition, speed_means$Diff1to2Binary))
+t6<- chisq.test(table(speed_means$subcondition, speed_means$Diff2to3Binary))
+
+#slope magnitude test
+t7<-t.test(speed_means$Diff1to2Absolute ~ speed_means$subcondition)
+t8<-t.test(speed_means$Diff2to3Absolute ~ speed_means$subcondition)
+```
+
+```{r SpeedNPprettyifying, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+t5p = t5$p.value
+t6p = t6$p.value
+t7p = t7$p.value
+t8p = t8$p.value
+summary1 <- matrix(c(t5p, t6p, t7p, t8p), byrow = TRUE)
+colnames(summary1) <- c("P-values")
+rownames(summary1) <- c("chi-sq of Block 2-1", "chi-sq of Block 3-1", "t-test of Block 2-1", "t-test of Block 2-1")
+summary1 %>% kable(., caption = "Summary of p-values for each test")
+```
+
+**Summary**: No significant effects.
+
+
+### Comparing Demographics and Determining Confounds
+
+```{r democomparisons, include=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+reduced_demos <- df %>% 
+  select(anxiety, depression, videogames, relationship, age, gender, race, primary_language, number_children, baby_mobility, breastfeed, id, subcondition ) %>% 
+  group_by(id) %>% unique()
+
+#comparing difference between groups
+lm_anxiety <- lm(anxiety ~ subcondition, data = reduced_demos)
+lm_depression <- lm(depression ~ subcondition, data = reduced_demos)
+lm_video <- lm(videogames ~ subcondition, data = reduced_demos)
+
+emmeans(lm_anxiety, "subcondition", contr = "pairwise", infer =TRUE)$contrast %>% 
+  kable(., digit=2, caption = "Comparing Anxiety Between Parents and NonParents")
+emmeans(lm_depression, "subcondition", contr = "pairwise", infer =TRUE)$contrast %>% 
+  kable(., digit=2, caption = "Comparing Depression Between Parents and NonParents")
+emmeans(lm_video, "subcondition", contr = "pairwise", infer =TRUE)$contrast %>% 
+  kable(., digit=2, caption = "Comparing Videogamp XP Between Parents and NonParents")
+
+#predicting RTs
+lm_RT.anxiety <- lmer(timesincecarstart ~ anxiety + (1|id), data = JustRTs)
+lm_RT.depression <- lmer(timesincecarstart ~ depression + (1|id), data = JustRTs)
+lm_RT.race <- lmer(timesincecarstart ~ race + (1|id), data = JustRTs)
+lm_RT.age <- lmer(timesincecarstart ~ age + (1|id), data = JustRTs)
+lm_RT.relationship <- lmer(timesincecarstart ~ relationship + (1|id), data = JustRTs)
+lm_RT.videogames <- lmer(timesincecarstart ~ videogames + (1|id), data = JustRTs)
+
+lm_RT.mobility <- lmer(timesincecarstart ~ baby_mobility + (1|id), data = JustRTs)
+lm_RT.breastfeed <- lmer(timesincecarstart ~ breastfeed + (1|id), data = JustRTs)
+lm_RT.kids <- lmer(timesincecarstart ~ number_children + (1|id), data = JustRTs)
+
+#make a smaller table of just p-values and only show those greater than 0.05
+summary2 <- matrix(c((summary(lm_RT.anxiety)$coef[2,5]), 
+                     (summary(lm_RT.depression)$coef[2,5]),
+                     (summary(lm_RT.race)$coef[2,5]),
+                     (summary(lm_RT.relationship)$coef[2,5]),
+                     (summary(lm_RT.age)$coef[2,5]),
+                     (summary(lm_RT.mobility)$coef[2,5]),
+                     (summary(lm_RT.breastfeed)$coef[2,5]),
+                     (summary(lm_RT.kids)$coef[2,5])), byrow = TRUE)
+colnames(summary2) <- c("P-values")
+rownames(summary2) <- c("~anxiety", "~depression", "~race", "~relationship", "~age", "~child mobility", "~breastfeed", "~number of kids")
+summary2 %>% kable(., caption = "Summary of p-values for RT predicted by each demo")
+
+#predicting speed
+lm_Speed.anxiety <- lmer(response ~ anxiety + (1|id), data = JustSpeeds)
+lm_Speed.depression <- lmer(response ~ depression + (1|id), data = JustSpeeds)
+lm_Speed.race <- lmer(response ~ race + (1|id), data = JustSpeeds)
+lm_Speed.age <- lmer(response ~ age + (1|id), data = JustSpeeds)
+lm_Speed.relationship <- lmer(response ~ relationship + (1|id), data = JustSpeeds)
+lm_Speed.videogames <- lmer(response ~ videogames + (1|id), data = JustSpeeds)
+
+lm_Speed.mobility <- lmer(response ~ baby_mobility + (1|id), data = JustSpeeds)
+lm_Speed.breastfeed <- lmer(response ~ breastfeed + (1|id), data = JustSpeeds)
+lm_Speed.kids <- lmer(response ~ number_children + (1|id), data = JustSpeeds)
+
+#make a smaller table of just p-values and only show those greater than 0.05
+summary3 <- matrix(c((summary(lm_Speed.anxiety)$coef[2,5]), 
+                     (summary(lm_Speed.depression)$coef[2,5]),
+                     (summary(lm_Speed.race)$coef[2,5]),
+                     (summary(lm_Speed.relationship)$coef[2,5]),
+                     (summary(lm_Speed.age)$coef[2,5]),
+                     (summary(lm_Speed.mobility)$coef[2,5]),
+                     (summary(lm_Speed.breastfeed)$coef[2,5]),
+                     (summary(lm_Speed.kids)$coef[2,5])), byrow = TRUE)
+colnames(summary3) <- c("P-values")
+rownames(summary3) <- c("~anxiety", "~depression", "~race", "~relationship", "~age", "~child mobility", "~breastfeed", "~number of kids")
+summary3 %>% kable(., caption = "Summary of p-values for Speed predicted by each demo")
+```
+**Summary**: There is no difference between parents and nonparents in depression, anxiety, or videogame experience (although anxiety suggests trend where college students are more anxious). 
+
+Relationship status (married vs. non-married) and race are confounds with parental conditions. At this stage of the the study (underpowered), this suggests a trending difference between these two groups, even though I can't parse them apart. 
+
+I may need to consider controlling for anxiety and depression, however. I should do model comparison tests to determine between (DV~anxiety+depression) vs. (DV~parental status).
+
+
+### Written Summary of All Findings
+[ahahaha im ded rn -- maybe i'll come back to this! >:O]
